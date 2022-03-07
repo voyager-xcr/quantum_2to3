@@ -17,7 +17,7 @@ import numpy as np
 
 import sys
 import os
-import cPickle
+import pickle
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath('../..'))
 from labrad import units
@@ -183,7 +183,7 @@ class LabradUnitsTests(unittest.TestCase):
         GHz = units.Unit('GHz')
         MHz = units.Unit('MHz')
         
-        self.assertEquals(float('inf')*GHz, float('inf')*MHz)
+        self.assertEqual(float('inf')*GHz, float('inf')*MHz)
         self.assertNotEqual(float('inf')*GHz, float('inf')*ms)
         self.assertNotEqual(float('inf')*GHz, -float('inf')*GHz)
         self.assertNotEqual(float('nan')*GHz, float('nan')*GHz)
@@ -195,7 +195,7 @@ class LabradUnitsTests(unittest.TestCase):
         blank = units.Unit('')
 
         def round_trip(obj):
-            return cPickle.loads(cPickle.dumps(obj))
+            return pickle.loads(pickle.dumps(obj))
         self.assertEqual(round_trip(5*GHz), 5*GHz) # Value
         self.assertEqual(round_trip(GHz), GHz)     # Unit
         self.assertTrue((round_trip(np.arange(5)*ns) == np.arange(5)*ns).all()) # array

@@ -26,7 +26,7 @@ to a server setting or returning from a setting when the accepted
 and return types have been registered), we can do even better.
 """
 
-from __future__ import absolute_import
+
 
 import collections
 import datetime
@@ -42,6 +42,7 @@ import labrad.units as U
 from labrad.units import Value, Complex
 
 import numpy as np
+from functools import reduce
 
 
 SYSTEM_BYTE_ORDER = '<' if sys.byteorder == 'little' else '>'
@@ -163,7 +164,7 @@ def parseTypeTag(s):
         else:
             return LRCluster(*types)
     except Exception:
-        print 'failed to parse:', s
+        print('failed to parse:', s)
         raise
 
 WHITESPACE = ' ,\t'
@@ -374,7 +375,7 @@ def flatten(obj, types=None, endianness='>'):
     if foundCompatibleType:
         try:
             return t.flatten(obj, endianness)
-        except Exception, e:
+        except Exception as e:
             raise FlatteningError(obj, t)
 
     # Since we haven't found anything compatible, just try to
@@ -453,15 +454,13 @@ def reprLRData(s):
 
 # LabRAD type classes
 
-class LRType(object):
+class LRType(object, metaclass=RegisterParser):
     """Base class of all LabRAD type objects.
 
     These type classes manage parsing and creation of type tags,
     provide default unflatteners, and also provide methods to test
     type equality and compatibility.
     """
-
-    __metaclass__ = RegisterParser
 
     width = 0
     isFixedWidth = True
@@ -644,7 +643,7 @@ class LRInt(LRType, Singleton):
         return struct.unpack(endianness + 'i', s.get(4))[0]
 
     def __flatten__(self, n, endianness):
-        if not isinstance(n, (int, long, np.integer)):
+        if not isinstance(n, (int, np.integer)):
             raise FlatteningError(n, self)
         if n >= 0x80000000 or n < -0x80000000:
             raise ValueError("out of range for type i: {0}".format(n))
@@ -660,16 +659,16 @@ class LRWord(LRType, Singleton):
     tag = 'w'
     width = 4
     def __unflatten__(self, s, endianness):
-        return long(struct.unpack(endianness + 'I', s.get(4))[0])
+        return int(struct.unpack(endianness + 'I', s.get(4))[0])
 
     def __flatten__(self, n, endianness):
-        if not isinstance(n, (int, long, np.integer)):
+        if not isinstance(n, (int, np.integer)):
             raise FlatteningError(n, self)
         if n > 0xFFFFFFFF or n < 0:
             raise ValueError("out of range for type w: {0}".format(n))
         return struct.pack(endianness + 'I', n), self
 
-registerType(long, LRWord())
+registerType(int, LRWord())
 registerType(np.uint32, LRWord())
 registerType(np.uint64, LRWord())
 
@@ -689,14 +688,14 @@ class LRStr(LRType, Singleton):
         return s.get(n)
 
     def __flatten__(self, s, endianness):
-        if isinstance(s, unicode):
+        if isinstance(s, str):
             s = s.encode('UTF-8')
         if not isinstance(s, str):
             raise FlatteningError(s, self)
         return struct.pack(endianness + 'I', len(s)) + s, self
 
 registerType(str, LRStr())
-registerType(unicode, LRStr())
+registerType(str, LRStr())
 
 class LRBytes(LRType, Singleton):
     """A raw 8-bit byte string."""
@@ -747,7 +746,7 @@ class LRTime(LRType, Singleton):
     def __flatten__(self, t, endianness):
         diff = t - timeOffset()
         secs = diff.days * (60 * 60 * 24) + diff.seconds
-        us = long(float(diff.microseconds) / pow(10, 6) * pow(2, 64))
+        us = int(float(diff.microseconds) / pow(10, 6) * pow(2, 64))
         return struct.pack(endianness + 'QQ', secs, us), self
 
 registerType(datetime.datetime, LRTime())
@@ -774,7 +773,7 @@ class LRValue(LRType):
 
     # Types which can be flattened by LRValue as 'v[]' via coercion to
     # float. See __flatten__.
-    CASTABLE_TYPES = [int, long]
+    CASTABLE_TYPES = [int, int]
 
     def __init__(self, unit=None):
         if isinstance(unit, U.Unit):
@@ -1127,7 +1126,7 @@ class LRList(LRType):
             width = size * elem.width
         else:
             newBuf = Buffer(s)
-            width = sum(elem.__width__(newBuf, endianness) for _ in xrange(size))
+            width = sum(elem.__width__(newBuf, endianness) for _ in range(size))
         s.skip(width)
         return 4*n + width
 
@@ -1237,9 +1236,9 @@ class LRList(LRType):
         else:
             def unflattenNDlist(s, dims):
                 if len(dims) == 1:
-                    return [unflatten(s, self.elem, endianness) for _ in xrange(dims[0])]
+                    return [unflatten(s, self.elem, endianness) for _ in range(dims[0])]
                 else:
-                    return [unflattenNDlist(s, dims[1:]) for _ in xrange(dims[0])]
+                    return [unflattenNDlist(s, dims[1:]) for _ in range(dims[0])]
             result = unflattenNDlist(s, dims)
         return LazyList(result)
 

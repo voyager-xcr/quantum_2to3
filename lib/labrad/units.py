@@ -99,23 +99,23 @@ class NumberDict(dict):
 
     def __add__(self, other):
         sum_dict = NumberDict()
-        for key in self.keys():
+        for key in list(self.keys()):
             sum_dict[key] = self[key]
-        for key in other.keys():
+        for key in list(other.keys()):
             sum_dict[key] = sum_dict[key] + other[key]
         return sum_dict
 
     def __sub__(self, other):
         sum_dict = NumberDict()
-        for key in self.keys():
+        for key in list(self.keys()):
             sum_dict[key] = self[key]
-        for key in other.keys():
+        for key in list(other.keys()):
             sum_dict[key] = sum_dict[key] - other[key]
         return sum_dict
 
     def __mul__(self, other):
         new = NumberDict()
-        for key in self.keys():
+        for key in list(self.keys()):
             new[key] = other * self[key]
         return new
 
@@ -123,7 +123,7 @@ class NumberDict(dict):
 
     def __div__(self, other):
         new = NumberDict()
-        for key in self.keys():
+        for key in list(self.keys()):
             new[key] = self[key] / other
         return new
 
@@ -385,7 +385,7 @@ class WithUnit(object):
     def __neg__(self):
         return WithUnit(-self._value, self.unit)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self._value != 0
 
     def __hash__(self):
@@ -478,7 +478,7 @@ class Value(WithUnit):
 
 WithUnit._numericTypes[float] = Value
 WithUnit._numericTypes[int] = Value
-WithUnit._numericTypes[long] = Value
+WithUnit._numericTypes[int] = Value
 WithUnit._numericTypes[np.int32] = Value
 WithUnit._numericTypes[np.int64] = Value
 
@@ -507,7 +507,7 @@ class ValueArray(WithUnit):
             return super(ValueArray, cls).__new__(cls, data, unit)
 
         it = iter(data)
-        first = it.next()
+        first = next(it)
         unit = first.unit
         first = first[unit] # convert to float
         rest = [x[unit] for x in it]
@@ -734,14 +734,14 @@ class Unit(object):
     def name(self):
         num = ''
         denom = ''
-        if all(power < 0 for unit, power in self.names.items()):
+        if all(power < 0 for unit, power in list(self.names.items())):
             # if all powers are negative, use negative exponents
-            for unit, power in self.names.items():
+            for unit, power in list(self.names.items()):
                 unit += '^' + str(power)
                 num += '*' + unit
         else:
             # if some powers are positive, use num/denom
-            for unit, power in self.names.items():
+            for unit, power in list(self.names.items()):
                 if power != 1 and power != -1:
                     unit += '^' + str(abs(power))
                 if power < 0: denom += '/' + unit
@@ -759,8 +759,8 @@ class Unit(object):
     def base_unit(self):
         num = ''
         denom = ''
-        for unit, power in (zip(_base_names, self.powers) +
-                            self.lex_names.items()):
+        for unit, power in (list(zip(_base_names, self.powers)) +
+                            list(self.lex_names.items())):
             if power != 1 and power != -1:
                 unit += '^' + str(abs(power))
             if power < 0: denom += '/' + unit
@@ -1124,7 +1124,7 @@ class DimensionlessFloat(WithDimensionlessUnit, float):
 
 WithUnit._dimensionlessTypes[float] = DimensionlessFloat
 WithUnit._dimensionlessTypes[int] = DimensionlessFloat
-WithUnit._dimensionlessTypes[long] = DimensionlessFloat
+WithUnit._dimensionlessTypes[int] = DimensionlessFloat
 WithUnit._dimensionlessTypes[np.float64] = DimensionlessFloat
 WithUnit._dimensionlessTypes[np.int64] = DimensionlessFloat
 WithUnit._dimensionlessTypes[np.float32] = DimensionlessFloat
@@ -1417,7 +1417,7 @@ def description():
             s += '%-8s  %-26s %s\n' % (prefix + name, comment, unit)
         else:
             # impossible
-            raise TypeError, 'wrong construction of _help list'
+            raise TypeError('wrong construction of _help list')
     return s
 
 # add the description of the units to the module's doc string:
@@ -1429,12 +1429,12 @@ if __name__ == '__main__':
 
     l = WithUnit(10., 'm')
     big_l = WithUnit(10., 'km')
-    print big_l + l
+    print(big_l + l)
     t = WithUnit(314159., 's')
 
     e = 2.7 * Hartree * Nav
-    print e.inUnitsOf('kcal/mol')
-    print e.inBaseUnits()
+    print(e.inUnitsOf('kcal/mol'))
+    print(e.inBaseUnits())
 
     freeze = 0 * Unit('degC')
-    print freeze['degF']
+    print(freeze['degF'])

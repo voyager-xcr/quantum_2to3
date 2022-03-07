@@ -127,10 +127,10 @@ class SafeIterDict(dict):
     keys = lambda self: list(dict.keys(self))
     items = lambda self: list(dict.items(self))
     values = lambda self: list(dict.values(self))
-    iterkeys = lambda self: iter(self.keys())
-    iteritems = lambda self: iter(self.items())
-    itervalues = lambda self: iter(self.values())
-    __iter__ = lambda self: iter(self.keys())
+    iterkeys = lambda self: iter(list(self.keys()))
+    iteritems = lambda self: iter(list(self.items()))
+    itervalues = lambda self: iter(list(self.values()))
+    __iter__ = lambda self: iter(list(self.keys()))
 
 class MultiDict(SafeIterDict):
     """Dictionary with multiple keys to the same value."""
@@ -141,7 +141,7 @@ class MultiDict(SafeIterDict):
 
     def __repr__(self):
         items = []
-        for k, v in self.iteritems():
+        for k, v in self.items():
             key_str = repr(k)
             if k in self._keys:
                 aliases = [key_str] + [repr(a) for a in self._keys[k]]
@@ -231,7 +231,7 @@ class PacketResponse(object):
             temp[keys].append(data)
         # add data for the various settings
         self.settings = MultiDict()
-        for (name, pyName, ID), l in temp.items():
+        for (name, pyName, ID), l in list(temp.items()):
             if len(l) == 1:
                 l = l[0]
             if isinstance(pyName, str):

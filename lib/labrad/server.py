@@ -60,8 +60,8 @@ class Signal(object):
         cxn = self.parent._cxn
         if contexts is None:
             # send this to everyone
-            for context, targets in self.listeners.items():
-                for target, ID in targets.items():
+            for context, targets in list(self.listeners.items()):
+                for target, ID in list(targets.items()):
                     cxn.sendMessage(target, [(ID, data, self.tag)], context)
         else:
             # this little hack allows one to specify contexts
@@ -75,7 +75,7 @@ class Signal(object):
             for context in contexts:
                 if context not in self.listeners:
                     continue
-                for target, ID in self.listeners[context].items():
+                for target, ID in list(self.listeners[context].items()):
                     cxn.sendMessage(target, [(ID, data, self.tag)], context)
 
     def connect(self, context, target, ID):
@@ -100,7 +100,7 @@ class Signal(object):
                     del self.listeners[context]
         # disconnect a particular target in any context
         elif target is not None:
-            for context, targets in self.listeners.items():
+            for context, targets in list(self.listeners.items()):
                 if target in targets:
                     del targets[target]
                 if not len(targets) or context[0] == target:
@@ -231,7 +231,7 @@ class LabradServer(object):
                     setting = self.settings[ID]
                     result = yield setting.handleRequest(self, c.data, flat_data)
                     response.append((ID, result, setting.returns))
-                except Exception, e:
+                except Exception as e:
                     response.append((ID, self._getTraceback(e)))
                     break
             c.check() # make sure this context hasn't expired
@@ -266,7 +266,7 @@ class LabradServer(object):
 
     def _checkSettingConflicts(self, s):
         """Check for conflicts in setting name and ID."""
-        for other in self.settings.values():
+        for other in list(self.settings.values()):
             if s.ID == other.ID or s.name == other.name:
                 msg = "Conflicting settings: '%s' (%d), '%s' (%d)" % \
                       (s.name, s.ID, other.name, other.ID)
@@ -401,7 +401,7 @@ class LabradServer(object):
         self.stopping = True
         try:
             yield self.stopServer()
-        except Exception, e:
+        except Exception as e:
             self._error = failure.Failure(e)
         finally:
             try:
@@ -500,7 +500,7 @@ class LabradServer(object):
 
     def _expireID(self, ID):
         """Expire all contexts with a given ID (high word)."""
-        for context in self.contexts.keys():
+        for context in list(self.contexts.keys()):
             if context[0] == ID:
                 self._expireContext(context)
 

@@ -3,14 +3,14 @@
 Provides a backend connection that underlies the wrapper client object.
 """
 
-from __future__ import absolute_import
+
 
 import asyncore
 import hashlib
 import socket
 import sys
 import threading
-import Queue
+import queue
 
 from concurrent.futures import Future
 
@@ -157,12 +157,12 @@ class AsyncoreConnection(BaseConnection):
                 ID = self.login(password, self.name)
                 self._connected.set()
                 return ID
-            except Exception, e:
+            except Exception as e:
                 self.disconnect()
                 raise
         except LoginFailedError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise LoginFailedError(e)
 
     def _disconnect(self):
@@ -181,7 +181,7 @@ class AsyncoreConnection(BaseConnection):
         m.update(challenge)
         m.update(password)
         try:
-            resp = self.sendRequest(C.MANAGER_ID, [(0L, m.digest())]).result()
+            resp = self.sendRequest(C.MANAGER_ID, [(0, m.digest())]).result()
         except Exception:
             raise LoginFailedError('Incorrect password.')
         support.cache_password(self.host, self.port, password)
@@ -190,7 +190,7 @@ class AsyncoreConnection(BaseConnection):
 
         # send identification
         try:
-            resp = self.sendRequest(C.MANAGER_ID, [(0L, (1L,) + ident)]).result()
+            resp = self.sendRequest(C.MANAGER_ID, [(0, (1,) + ident)]).result()
         except Exception:
             raise LoginFailedError('Bad identification.')
         return resp[0][1] # get assigned ID
@@ -242,7 +242,7 @@ class AsyncoreConnection(BaseConnection):
         if isinstance(server, str) or len(settingLookups):
             # need to do additional lookup here
             if len(settingLookups):
-                indices, names = zip(*settingLookups)
+                indices, names = list(zip(*settingLookups))
             else:
                 indices, names = [], []
             # send the actual lookup request
@@ -254,7 +254,7 @@ class AsyncoreConnection(BaseConnection):
                 self.serverCache[server] = serverID
             server = serverID
             settings = self.settingCache.setdefault(server, {})
-            settings.update(zip(names, IDs))
+            settings.update(list(zip(names, IDs)))
             # update the records for the packet
             for index, ID in zip(indices, IDs):
                 records[index] = (ID,) + tuple(records[index][1:])
@@ -293,12 +293,12 @@ class AsyncoreProtocol(asyncore.dispatcher):
         self.nextRequest = 1
         self.requests = {}
         self.pool = set()
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.buffer = ''
 
         # create a generator to assemble the packets
         self.stream = packetStream(self.handleResponse)
-        self.stream.next() # start the packet stream
+        next(self.stream) # start the packet stream
 
     def enqueue(self, target, context, flatrecs, future):
         """Called from another thread to enqueue a packet"""
@@ -324,7 +324,7 @@ class AsyncoreProtocol(asyncore.dispatcher):
             self.close()
         finally:
             self.flushCommands()
-            for d in self.requests.values():
+            for d in list(self.requests.values()):
                 d.set_exception(reason)
 
     def readable(self):
@@ -348,7 +348,7 @@ class AsyncoreProtocol(asyncore.dispatcher):
         while True:
             try:
                 command = self.queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 break
             if command is None:
                 self.terminate('Connection closed')
@@ -422,8 +422,8 @@ class ManagerService:
 
     def getServerInfo(self, serverID):
         """Get information about a server."""
-        packet = [(C.HELP, long(serverID)),
-                  (C.SETTINGS_LIST, long(serverID))]
+        packet = [(C.HELP, int(serverID)),
+                  (C.SETTINGS_LIST, int(serverID))]
         resp = self._send(packet)
         descr, notes = resp[0][1]
         settings = self._reorderIDList(resp[1][1])
@@ -435,15 +435,15 @@ class ManagerService:
 
     def getSettingInfo(self, serverID, settingID):
         """Get information about a setting."""
-        packet = [(C.HELP, (long(serverID), long(settingID)))]
+        packet = [(C.HELP, (int(serverID), int(settingID)))]
         resp = self._send(packet)
         description, accepts, returns, notes = resp[0][1]
         return (description, accepts, returns, notes)
 
     def getSettingInfoByName(self, serverID, settingName):
         """Get information about a setting using its name."""
-        packet = [(C.HELP, (long(serverID), settingName)),
-                  (C.LOOKUP, (long(serverID), settingName))]
+        packet = [(C.HELP, (int(serverID), settingName)),
+                  (C.LOOKUP, (int(serverID), settingName))]
         resp = self._send(packet)
         description, accepts, returns, notes = resp[0][1]
         ID = resp[1][1][1]

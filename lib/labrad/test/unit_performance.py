@@ -17,7 +17,7 @@ import numpy as np
 import labrad.units as U
 
 
-unit_list = [x for x in U._unit_table.values() if x.offset == 0]
+unit_list = [x for x in list(U._unit_table.values()) if x.offset == 0]
 
 
 def random_unit():
@@ -113,7 +113,7 @@ def perf_mul_array(N=1000):
 def run_tests(func_prefix='perf_', key_prefix='labrad.units.'):
     stats = {}
     g = globals()
-    for name in g.keys():
+    for name in list(g.keys()):
         if name.startswith(func_prefix):
             key = key_prefix + name[len(func_prefix):]
             result = timeit.repeat(g[name], number=10, repeat=3)
@@ -132,13 +132,13 @@ def main():
     result = run_tests()
 
     if args.format == 'json':
-        print json.dumps({k: v['ms'] for k, v in result.items()}, indent=2)
+        print(json.dumps({k: v['ms'] for k, v in list(result.items())}, indent=2))
     else:
         root = ET.Element('build')
         for k, v in sorted(result.items()):
             child = ET.SubElement(root, 'statisticValue',
                                   key=k, value='{:f}'.format(v['ms']))
-        print ET.tostring(root)
+        print(ET.tostring(root))
 
 
 if __name__ == "__main__":

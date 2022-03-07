@@ -47,7 +47,7 @@ class LabradProtocol(protocol.Protocol):
         self.request_handler = None
         # create a generator to assemble the packets
         self.packetStream = packetStream(self.packetReceived, self.endianness)
-        self.packetStream.next() # start the packet stream
+        next(self.packetStream) # start the packet stream
 
         self.onDisconnect = util.DeferredSignal()
 
@@ -78,7 +78,7 @@ class LabradProtocol(protocol.Protocol):
         called, or because of some network error.
         """
         self.disconnected = True
-        for d in self.requests.values():
+        for d in list(self.requests.values()):
             d.errback(Exception('Connection lost.'))
         if reason == protocol.connectionDone:
             self.onDisconnect.callback(None)
@@ -147,7 +147,7 @@ class LabradProtocol(protocol.Protocol):
         if isinstance(server, str) or len(settingLookups):
             # need to do additional lookup here
             if len(settingLookups):
-                indices, names = zip(*settingLookups)
+                indices, names = list(zip(*settingLookups))
             else:
                 indices, names = [], []
             # send the actual lookup request
@@ -159,7 +159,7 @@ class LabradProtocol(protocol.Protocol):
                 self._serverCache[server] = serverID
             server = serverID
             settings = self._settingCache.setdefault(server, {})
-            settings.update(zip(names, IDs))
+            settings.update(list(zip(names, IDs)))
             # update the records for the packet
             for index, ID in zip(indices, IDs):
                 records[index] = (ID,) + tuple(records[index][1:])
@@ -287,7 +287,7 @@ class LabradProtocol(protocol.Protocol):
         Just prints out a (hopefully informative) message
         about any errors that may have occurred.
         """
-        print 'Unhandled error in message listener:', msgCtx, data, listener
+        print('Unhandled error in message listener:', msgCtx, data, listener)
         failure.printTraceback(elideFrameworkCode=1)
 
     # message handling
@@ -330,7 +330,7 @@ class LabradProtocol(protocol.Protocol):
         m.update(challenge)
         m.update(password)
         try:
-            resp = yield self.sendRequest(C.MANAGER_ID, [(0L, m.digest())])
+            resp = yield self.sendRequest(C.MANAGER_ID, [(0, m.digest())])
         except Exception:
             raise errors.LoginFailedError('Incorrect password.')
         support.cache_password(self.host, self.port, password)
@@ -370,7 +370,7 @@ class LabradProtocol(protocol.Protocol):
     @inlineCallbacks
     def _doLogin(self, *ident):
         # send identification
-        resp = yield self.sendRequest(C.MANAGER_ID, [(0L, (1L,) + ident)])
+        resp = yield self.sendRequest(C.MANAGER_ID, [(0, (1,) + ident)])
         self.ID = resp[0][1] # get assigned ID
 
 
@@ -424,7 +424,7 @@ def connect(host=C.MANAGER_HOST, port=None, tls_mode=C.MANAGER_TLS):
     @inlineCallbacks
     def start_tls(p, cert_string=None):
         try:
-            resp = yield p.sendRequest(C.MANAGER_ID, [(1L, ('STARTTLS', host))])
+            resp = yield p.sendRequest(C.MANAGER_ID, [(1, ('STARTTLS', host))])
         except Exception:
             raise Exception(
                 'Failed sending STARTTLS command to server. You should update '
@@ -436,7 +436,7 @@ def connect(host=C.MANAGER_HOST, port=None, tls_mode=C.MANAGER_TLS):
         returnValue(cert)
 
     def ping(p):
-        return p.sendRequest(C.MANAGER_ID, [(2L, 'PING')])
+        return p.sendRequest(C.MANAGER_ID, [(2, 'PING')])
 
     p = yield do_connect()
     is_local_connection = util.is_local_connection(p.transport)
@@ -450,16 +450,16 @@ def connect(host=C.MANAGER_HOST, port=None, tls_mode=C.MANAGER_TLS):
             print ('STARTTLS failed; will retry without encryption in case we '
                    'are connecting to a legacy manager.')
             p = yield connect(host, port, tls_mode='off')
-            print 'Connected without encryption.'
+            print('Connected without encryption.')
             returnValue(p)
         try:
             yield ping(p)
         except Exception:
-            print 'STARTTLS failed due to untrusted server certificate:'
-            print 'SHA1 Fingerprint={}'.format(crypto.fingerprint(cert))
-            print
+            print('STARTTLS failed due to untrusted server certificate:')
+            print('SHA1 Fingerprint={}'.format(crypto.fingerprint(cert)))
+            print()
             while True:
-                ans = raw_input(
+                ans = input(
                         'Accept server certificate for host "{}"? (accept just '
                         'this [O]nce; [S]ave and always accept this cert; '
                         '[R]eject) '.format(host))
@@ -467,7 +467,7 @@ def connect(host=C.MANAGER_HOST, port=None, tls_mode=C.MANAGER_TLS):
                 if ans in ['o', 's', 'r']:
                     break
                 else:
-                    print 'Invalid input:', ans
+                    print('Invalid input:', ans)
             if ans == 'r':
                 raise
             p = yield do_connect()

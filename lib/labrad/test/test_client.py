@@ -34,7 +34,7 @@ class ClientTests(unittest.TestCase):
 
     def testConnection(self):
         servers = self.cxn.servers
-        self.assertTrue(len(servers.keys()) > 0)
+        self.assertTrue(len(list(servers.keys())) > 0)
         self.assertTrue('manager' in servers)
         self.assertTrue('python_test_server' in servers)
 
@@ -100,7 +100,7 @@ class ClientTests(unittest.TestCase):
 
         # test using keys to refer to parts of a packet
         pkt2 = pts.packet()
-        resp = pkt2.echo(1L, key='one')\
+        resp = pkt2.echo(1, key='one')\
                    .echo_delay(T.Value(0.1, 's'))\
                    .delayed_echo('blah', key='two')\
                    .send()
@@ -172,10 +172,10 @@ class ClientTests(unittest.TestCase):
         pts3.set('3', 3)
         pts4.set('4', 4)
 
-        self.assertEqual(pts1.keys(), ['1'])
-        self.assertEqual(pts2.keys(), ['2'])
-        self.assertEqual(pts3.keys(), ['3'])
-        self.assertEqual(pts4.keys(), ['4'])
+        self.assertEqual(list(pts1.keys()), ['1'])
+        self.assertEqual(list(pts2.keys()), ['2'])
+        self.assertEqual(list(pts3.keys()), ['3'])
+        self.assertEqual(list(pts4.keys()), ['4'])
 
     def test_server_calls(self):
         """Make sure that server settings can call other settings directly.
@@ -188,7 +188,7 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(ts.get("foo"), "bar")
 
         ts.echo_delay(T.Value(0.1, 's'))
-        self.assertEquals(ts.delayed_echo_wrapper(1), 1)
+        self.assertEqual(ts.delayed_echo_wrapper(1), 1)
 
 if __name__ == "__main__":
     unittest.main()

@@ -72,7 +72,7 @@ class LabradTypesTests(unittest.TestCase):
             # more complex stuff
             '*b*i': T.LRCluster(T.LRList(T.LRBool()), T.LRList(T.LRInt())),
         }
-        for tag, type_ in tests.items():
+        for tag, type_ in list(tests.items()):
             self.assertEqual(T.parseTypeTag(tag), type_)
             newtag = str(type_)
             if isinstance(type_, T.LRCluster) and tag[0] + tag[-1] != '()':
@@ -92,7 +92,7 @@ class LabradTypesTests(unittest.TestCase):
             '   i  :': T.LRInt(),
             '   i  : blah': T.LRInt(),
         }
-        for tag, type_ in tests.items():
+        for tag, type_ in list(tests.items()):
             self.assertEqual(T.parseTypeTag(tag), type_)
 
     def testDefaultFlatAndBack(self):
@@ -111,7 +111,7 @@ class LabradTypesTests(unittest.TestCase):
             None,
             True, False,
             1, -1, 2, -2, 0x7FFFFFFF, -0x80000000,
-            1L, 2L, 3L, 4L, 0L, 0xFFFFFFFFL,
+            1, 2, 3, 4, 0, 0xFFFFFFFF,
             '', 'a', '\x00\x01\x02\x03',
             datetime.now(),
 
@@ -145,7 +145,7 @@ class LabradTypesTests(unittest.TestCase):
             [['a', 'bb', 'ccc'], ['dddd', 'eeeee', 'ffffff']],
 
             # more complex stuff
-            [(1L, 'a'), (2L, 'b')],
+            [(1, 'a'), (2, 'b')],
         ]
         for data_in in tests:
             data_out = T.unflatten(*T.flatten(data_in))
@@ -261,7 +261,7 @@ class LabradTypesTests(unittest.TestCase):
             # handle unknown pieces inside clusters and lists
             (['a', 'b'], ['*?'], '*s'),
             ((1, 2, 'a'), ['ww?'], 'wws'),
-            ((1, 1L), ['??'], 'iw'),
+            ((1, 1), ['??'], 'iw'),
         ]
         for data, hints, tag in passingTests:
             self.assertEqual(T.flatten(data, hints)[1], T.parseTypeTag(tag))
@@ -334,22 +334,22 @@ class LabradTypesTests(unittest.TestCase):
 
     def testFlattenIsIdempotent(self):
         flat = T.flatten(0x1, 'i')
-        self.assertEquals(T.flatten(flat), flat)
-        self.assertEquals(T.flatten(flat, 'i'), flat)
+        self.assertEqual(T.flatten(flat), flat)
+        self.assertEqual(T.flatten(flat, 'i'), flat)
         with self.assertRaises(T.FlatteningError):
             T.flatten(flat, 'v')
 
     def testEvalDatetime(self):
         data = datetime.now()
         data2 = T.evalLRData(repr(data))
-        self.assertEquals(data, data2)
+        self.assertEqual(data, data2)
 
     def testUnicodeBytes(self):
         foo = T.flatten('foo bar')
-        self.assertEquals(foo, T.flatten(u'foo bar'))
-        self.assertEquals(str(foo.tag), 's')
-        self.assertEquals(T.unflatten(foo.bytes, 'y'), 'foo bar')
-        self.assertEquals(T.unflatten(*T.flatten('foo bar', ['y'])), 'foo bar')
+        self.assertEqual(foo, T.flatten('foo bar'))
+        self.assertEqual(str(foo.tag), 's')
+        self.assertEqual(T.unflatten(foo.bytes, 'y'), 'foo bar')
+        self.assertEqual(T.unflatten(*T.flatten('foo bar', ['y'])), 'foo bar')
 
     def testFlattenIntArrayToValueArray(self):
         x = np.array([1, 2, 3, 4], dtype='int64')
@@ -360,11 +360,11 @@ class LabradTypesTests(unittest.TestCase):
     def testCanFlattenFlatData(self):
         x = ('this is a test', -42, [False, True])
         flat = T.flatten(x)
-        self.assertEquals(T.parseTypeTag(flat.tag), T.parseTypeTag('si*b'))
+        self.assertEqual(T.parseTypeTag(flat.tag), T.parseTypeTag('si*b'))
         flat2 = T.flatten(x)
-        self.assertEquals(flat2, flat)
+        self.assertEqual(flat2, flat)
         flat3 = T.flatten(x, 'si*b')
-        self.assertEquals(flat3, flat)
+        self.assertEqual(flat3, flat)
         with self.assertRaises(T.FlatteningError):
             T.flatten(x, 'sv')
 
@@ -381,10 +381,10 @@ class LabradTypesTests(unittest.TestCase):
         expected = T.flatten(not_flattened)
 
         flat1 = T.flatten(partially_flattened)
-        self.assertEquals(flat1, expected)
+        self.assertEqual(flat1, expected)
 
         flat2 = T.flatten(partially_flattened, tag)
-        self.assertEquals(flat2, expected)
+        self.assertEqual(flat2, expected)
 
         with self.assertRaises(T.FlatteningError):
             T.flatten(partially_flattened, '*(si)')
@@ -402,10 +402,10 @@ class LabradTypesTests(unittest.TestCase):
         expected = T.flatten(not_flattened)
 
         flat1 = T.flatten(partially_flattened)
-        self.assertEquals(flat1, expected)
+        self.assertEqual(flat1, expected)
 
         flat2 = T.flatten(partially_flattened, tag)
-        self.assertEquals(flat2, expected)
+        self.assertEqual(flat2, expected)
 
         with self.assertRaises(T.FlatteningError):
             T.flatten(partially_flattened, '*(s(si*b))')

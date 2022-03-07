@@ -29,8 +29,8 @@ class AsyncoreBackendTests(unittest.TestCase):
     def testRequestCancellation(self):
         cxn = backend.AsyncoreConnection()
         cxn.connect(tls_mode='off')
-        cxn.sendRequest(1, [(1L, None)]).result()
-        future = cxn.sendRequest(1, [(1L, None)])
+        cxn.sendRequest(1, [(1, None)]).result()
+        future = cxn.sendRequest(1, [(1, None)])
         self.assertTrue(cxn.loop.is_alive())
         cxn.disconnect()
         self.assertFalse(cxn.loop.is_alive())
@@ -49,13 +49,13 @@ class AsyncoreBackendTests(unittest.TestCase):
         cxn = backend.AsyncoreConnection()
         cxn.connect(tls_mode='off')
         self.assertTrue(cxn.loop.is_alive())
-        cxn.sendRequest(1, [(1L, None)]).result()
+        cxn.sendRequest(1, [(1, None)]).result()
         cxn.cxn.queue.put(badPacket)
         cxn.cxn.queue.put(badPacket) # this will cause the manager to drop us...
         # we send a request in a subfunction because the exception can be raised
         # either in the sendRequest call or in the wait call, depending on timing
         def doRequest():
-            cxn.sendRequest(1, [(1L, None)]).result()
+            cxn.sendRequest(1, [(1, None)]).result()
         self.assertRaises(Exception, doRequest)
         self.assertRaises(Exception, doRequest)
 

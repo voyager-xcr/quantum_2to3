@@ -19,7 +19,7 @@ labrad.decorators
 Decorators that help in creating LabRAD servers.
 """
 
-from __future__ import absolute_import
+
 
 import functools
 import inspect
@@ -44,7 +44,7 @@ def setting(lr_ID, lr_name=None, returns=[], unflatten=True, **params):
         try:
             return Setting(func, lr_ID, lr_name, returns, unflatten, **params)
         except Exception:
-            print 'Error in setting {} ({}):'.format(func.__name__, lr_ID)
+            print('Error in setting {} ({}):'.format(func.__name__, lr_ID))
             raise
     return decorator
 
@@ -78,7 +78,7 @@ class Setting(object):
         self.func = func
         self.ID = lr_ID
         self.name = lr_name or func.__name__
-        self.returns = [returns] if isinstance(returns, basestring) else returns
+        self.returns = [returns] if isinstance(returns, str) else returns
         self.isSetting = True
         self.unflatten = unflatten
         self.description, self.notes = util.parseSettingDoc(func.__doc__)
@@ -108,10 +108,10 @@ class Setting(object):
             if arg not in params:
                 params[arg] = ['?']
 
-        for p in params.keys():
+        for p in list(params.keys()):
             if p not in args:
                 raise ValueError("Setting parameter {} not accepted by function".format(p))
-            if isinstance(params[p], basestring):
+            if isinstance(params[p], str):
                 params[p] = [params[p]]
 
         Nparams = len(args)
@@ -190,7 +190,7 @@ class Setting(object):
             return self.func(server, c, flat_data)
 
     def getRegistrationInfo(self):
-        return (long(self.ID), self.name, self.description,
+        return (int(self.ID), self.name, self.description,
                 self.accepts, self.returns, self.notes)
 
 
@@ -365,7 +365,7 @@ def messageHandler(lr_ID, lr_name=None, returns=[], lr_num_params=2, **params):
         # register this setting to be remotely callable
         f.description, f.notes = util.parseSettingDoc(f.__doc__)
         def getRegistrationInfo():
-            return (long(f.ID), f.name, f.description,
+            return (int(f.ID), f.name, f.description,
                     f.accepts, f.returns, f.notes)
         f.getRegistrationInfo = getRegistrationInfo
 

@@ -46,7 +46,7 @@ def unwrap(text):
 
 def regex(s):
     ''' Compile a regex using a "little language" of symbolic names. '''
-    for name, expr in names.items():
+    for name, expr in list(names.items()):
         s = s.replace(name, expr)
     return re.compile(s, re.DOTALL | re.MULTILINE | re.VERBOSE)
 

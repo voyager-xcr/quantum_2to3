@@ -65,16 +65,16 @@ For rsyslogd on ubuntu, create the following file:
 :syslogtag,contains,"labrad"			/var/log/labrad.log;RSYSLOG_TraditionalFileFormat
 """
 
-from __future__ import with_statement
 
-from ConfigParser import SafeConfigParser
+
+from configparser import SafeConfigParser
 from datetime import datetime
 import logging
 import logging.handlers
 import os
 import shlex
 import socket
-import StringIO
+import io
 import sys
 import zipfile
 
@@ -145,9 +145,9 @@ class ServerProcess(ProcessProtocol):
     def _start(self):
         if self.started:
             return
-        print "starting '%s'..." % self.name
-        print "path:", self.path
-        print "args:", self.args
+        print("starting '%s'..." % self.name)
+        print("path:", self.path)
+        print("args:", self.args)
         self.starting = True
         self.startup = defer.Deferred()
         dispatcher.connect(self.serverConnected, 'serverConnected')
@@ -190,14 +190,14 @@ class ServerProcess(ProcessProtocol):
                 timeoutCall.cancel()
             try:
                 dispatcher.disconnect(self.serverConnected, 'serverConnected')
-            except Exception, e:
-                print 'Error while disconnecting signal:', e
+            except Exception as e:
+                print('Error while disconnecting signal:', e)
 
     @inlineCallbacks
     def _stop(self):
         if not self.started:
             return
-        print "stopping '%s'..." % self.name
+        print("stopping '%s'..." % self.name)
         self.stopping = True
         self.shutdown = defer.Deferred()
         self.emitMessage('server_stopping')
@@ -243,11 +243,11 @@ class ServerProcess(ProcessProtocol):
         call the appropriate deferred, depending on the current state.
         """
         if isinstance(reason.value, ProcessDone):
-            print "'%s': process closed cleanly." % self.name
+            print("'%s': process closed cleanly." % self.name)
         elif isinstance(reason.value, ProcessTerminated):
-            print "'%s': process terminated: %s" % (self.name, reason.value)
+            print("'%s': process terminated: %s" % (self.name, reason.value))
         else:
-            print "'%s': process ended: %s" % (self.name, reason)
+            print("'%s': process ended: %s" % (self.name, reason))
         self.started = False
         if self.starting:
             err = T.Error('Startup failed.', payload=self.output)
@@ -338,7 +338,7 @@ def createGenericServerCls(path, filename, conf):
         pass
 
     scp = SafeConfigParser()
-    scp.readfp(StringIO.StringIO(conf))
+    scp.readfp(io.StringIO(conf))
 
     # general information
     cls.name = scp.get('info', 'name', raw=True)
@@ -425,7 +425,7 @@ class Node(object):
         """Run the node in a loop, reconnecting after connection loss."""
         log = logging.getLogger('labrad.node')
         while True:
-            print 'Connecting to {}:{}...'.format(self.host, self.port)
+            print('Connecting to {}:{}...'.format(self.host, self.port))
             try:
                 p = yield protocol.connect(self.host, self.port, self.tls_mode)
                 yield p.authenticate(self.password)
@@ -446,7 +446,7 @@ class Node(object):
             dispatcher._boundMethods.clear()
 
             yield util.wakeupCall(0)
-            print 'Will try to reconnect in {} seconds...'.format(self.reconnectDelay)
+            print('Will try to reconnect in {} seconds...'.format(self.reconnectDelay))
             yield util.wakeupCall(self.reconnectDelay)
 
 
@@ -515,8 +515,8 @@ class NodeConfig(object):
     def _update(self, config, triggerRefresh=True):
         """Update instance variables from loaded config."""
         self.dirs, self.extensions, self.autostart = config
-        print 'config updated: dirs={}, extensions={}, autostart={}'.format(
-                self.dirs, self.extensions, self.autostart)
+        print('config updated: dirs={}, extensions={}, autostart={}'.format(
+                self.dirs, self.extensions, self.autostart))
         if triggerRefresh:
             self.parent.refreshServers()
 
@@ -604,7 +604,7 @@ class NodeServer(LabradServer):
     def stopServer(self):
         """Stop this node by killing all subprocesses."""
         self.initMessages(False)
-        stoppages = [srv.stop() for srv in self.runners.values()]
+        stoppages = [srv.stop() for srv in list(self.runners.values())]
         return defer.DeferredList(stoppages)
 
 
@@ -619,7 +619,7 @@ class NodeServer(LabradServer):
                 method(receiver, signal)
             except dispatcher.DispatcherError as e:
                 msg = 'Error while setting up message dispatching. receiver={0}, method={1}, signal={2}.'
-                print msg.format(receiver, attr, signal), e
+                print(msg.format(receiver, attr, signal), e)
         # set up messages to be relayed out over LabRAD
         messages = ['server_starting', 'server_started',
                     'server_stopping', 'server_stopped',
@@ -671,7 +671,7 @@ class NodeServer(LabradServer):
     def status(self):
         """Get information about all servers on this node."""
         def serverInfo(cls):
-            instances = [n for n, s in self.runners.items()
+            instances = [n for n, s in list(self.runners.items())
                                     if s.__class__.name == cls.name]
             return (cls.name, cls.__doc__ or '', cls.version,
                     cls.instancename, cls.environVars, instances)
@@ -732,8 +732,8 @@ class NodeServer(LabradServer):
                                   exc_info=True)
 
         servers_dict = {}
-        for versions in configs.values():
-            for servers in versions.values():
+        for versions in list(configs.values()):
+            for servers in list(versions.values()):
                 if len(servers) > 1:
                     conflicting_files = [s.filename for s in servers]
                     s = servers[0]
@@ -744,7 +744,7 @@ class NodeServer(LabradServer):
                         .format(s.filename, s.name, s.version,
                                 conflicting_files))
 
-            servers = [ss[0] for ss in versions.values()]
+            servers = [ss[0] for ss in list(versions.values())]
             servers.sort(key=lambda s: version_tuple(s.version))
             if len(servers) > 1:
                 # modify server name for all but the latest version
@@ -806,12 +806,12 @@ class NodeServer(LabradServer):
 
         Returns a list of tuples of server name and instance name.
         """
-        return sorted((s.__class__.name, n) for n, s in self.runners.items())
+        return sorted((s.__class__.name, n) for n, s in list(self.runners.items()))
 
     @setting(12, returns='*s')
     def local_servers(self, c):
         """Get a list of local servers."""
-        return sorted(n for n, s in self.servers.items() if s.isLocal)
+        return sorted(n for n, s in list(self.servers.items()) if s.isLocal)
 
     @setting(13, returns='')
     def refresh_servers(self, c):
@@ -864,7 +864,7 @@ class NodeServer(LabradServer):
         the node first starts up, but can be invoked manually at any time
         thereafter.
         """
-        running = set(s.__class__.name for s in self.runners.values())
+        running = set(s.__class__.name for s in list(self.runners.values()))
         to_start = [name for name in self.config.autostart
                          if name not in running]
         deferreds = [(name, self.start(c, name)) for name in to_start]
