@@ -35,7 +35,7 @@ import re
 import struct
 import sys
 import time
-from types import InstanceType
+# from types import InstanceType
 import warnings
 
 import labrad.units as U
@@ -258,8 +258,8 @@ def getType(obj):
         return parseTypeTag(obj.tag)
 
     # handle classic classes
-    if t == InstanceType:
-        t = obj.__class__
+    # if t == InstanceType:
+    #     t = obj.__class__
 
     # check if we know this type
     if t in _types:
